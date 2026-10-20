@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Docs Dark Mode</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="ddm-popup">
+      <h1 class="ddm-title">Docs Dark Mode</h1>
+      <p class="ddm-description">Tema escuro para o Google Docs no Brave.</p>
+
+      <label class="ddm-switch">
+        <input
+          id="ddm-enabled"
+          class="ddm-switch-input"
+          type="checkbox"
+          role="switch"
+          aria-describedby="ddm-status"
+          disabled
+        />
+        <span class="ddm-switch-label">Modo escuro</span>
+      </label>
+
+      <p id="ddm-status" class="ddm-status" role="status" aria-live="polite">Carregando…</p>
+    </main>
+    <script src="popup.js" defer></script>
+  </body>
+</html>

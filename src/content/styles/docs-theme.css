@@ -1,0 +1,306 @@
+/*
+ * Docs Dark Mode — tema escuro da interface do Google Docs (Fase 3).
+ *
+ * Este arquivo é a única fonte de estilo da interface. Regras de
+ * manutenção:
+ *
+ * 1. Todo o conteúdo fica dentro de `@media screen`, de modo que a
+ *    impressão e a exportação continuem com o resultado original do
+ *    Google Docs.
+ * 2. Todo seletor começa por `html[data-ddm-theme='dark']`. Sem o atributo
+ *    nenhum seletor casa: desativar o tema remove todos os efeitos na
+ *    hora, sem recarregar a página e sem estilos inline residuais.
+ * 3. Os tokens ficam no mesmo escopo do atributo, para desaparecerem junto
+ *    com o tema.
+ * 4. Sem `!important`, sem filtros, sem `url(...)`, sem `@import` e sem
+ *    qualquer seletor do conteúdo do documento.
+ * 5. Os ícones do Google Docs não são tratados nesta versão: nenhum filtro
+ *    é aplicado a eles. Se a validação no editor real mostrar ícones
+ *    ilegíveis, a correção entra aqui, com evidência.
+ * 6. `::selection` é restrito a campos e componentes de interface; a área
+ *    de edição do documento mantém a seleção nativa.
+ *
+ * Legenda:
+ *   `FRÁGIL` — seletor apoiado em nomes internos do Google Docs; pode
+ *   deixar de casar quando o editor for atualizado.
+ */
+
+@media screen {
+  /* -------------------------------------------------------------------
+   * Tokens
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] {
+    --ddm-bg: #1f1f1f;
+    --ddm-surface: #262626;
+    --ddm-surface-raised: #303030;
+    --ddm-overlay: #363636;
+    --ddm-text: #e8eaed;
+    --ddm-text-muted: #a8aaad;
+    --ddm-border: #4a4a4a;
+    --ddm-divider: #3c4043;
+    --ddm-hover: rgba(255, 255, 255, 0.08);
+    --ddm-active: rgba(255, 255, 255, 0.16);
+    --ddm-selected: rgba(138, 180, 248, 0.24);
+    --ddm-focus: #8ab4f8;
+    --ddm-accent: #8ab4f8;
+    --ddm-danger: #f28b82;
+  }
+
+  /* -------------------------------------------------------------------
+   * `color-scheme` — deliberadamente ausente nesta fase
+   *
+   * A declaração `color-scheme: dark` foi avaliada e descartada: ela
+   * resolve as barras de rolagem nativas, mas também troca a cor de texto
+   * padrão do elemento raiz (herdada por qualquer conteúdo sem cor
+   * explícita), o que pode alcançar a área de edição do documento. Como
+   * o efeito no editor real ainda não foi validado, a declaração não é
+   * usada: as barras de rolagem desta fase são estilizadas pelas regras
+   * `::-webkit-scrollbar` abaixo, e os controles nativos permanecem com o
+   * padrão do navegador.
+   *
+   * Se a validação no editor real mostrar que o `color-scheme` é seguro,
+   * ele pode ser reintroduzido como regra isolada, fácil de reverter.
+   * ----------------------------------------------------------------- */
+
+  /* -------------------------------------------------------------------
+   * Estrutura do aplicativo
+   *
+   * FRÁGIL: `#docs-titlebar`, `.docs-titlebar` e `.docs-title-input` são
+   * nomes internos do Google Docs. O contêiner do documento
+   * (`#docs-editor-container`) NÃO é tematizado nesta fase: ele hospeda a
+   * área de edição, que pertence ao tema da página do documento (Fase 4).
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] {
+    background-color: var(--ddm-bg);
+  }
+
+  html[data-ddm-theme='dark'] body {
+    background-color: var(--ddm-bg);
+  }
+
+  html[data-ddm-theme='dark'] #docs-titlebar,
+  html[data-ddm-theme='dark'] .docs-titlebar {
+    background-color: var(--ddm-surface);
+    border-bottom: 1px solid var(--ddm-divider);
+  }
+
+  html[data-ddm-theme='dark'] .docs-title-input {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+    border-color: var(--ddm-border);
+  }
+
+  html[data-ddm-theme='dark'] .docs-title-input::placeholder {
+    color: var(--ddm-text-muted);
+  }
+
+  /* -------------------------------------------------------------------
+   * Barras de ferramentas e barras de menu
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] [role='toolbar'],
+  html[data-ddm-theme='dark'] [role='menubar'] {
+    background-color: var(--ddm-surface);
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] [role='toolbar'] button,
+  html[data-ddm-theme='dark'] [role='menubar'] button {
+    background-color: transparent;
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] [role='toolbar'] button:hover,
+  html[data-ddm-theme='dark'] [role='menubar'] button:hover {
+    background-color: var(--ddm-hover);
+  }
+
+  html[data-ddm-theme='dark'] [role='toolbar'] button:disabled,
+  html[data-ddm-theme='dark'] [role='menubar'] button:disabled {
+    color: var(--ddm-text-muted);
+  }
+
+  html[data-ddm-theme='dark'] [role='toolbar'] [role='separator'],
+  html[data-ddm-theme='dark'] [role='menubar'] [role='separator'],
+  html[data-ddm-theme='dark'] [role='toolbar'] hr,
+  html[data-ddm-theme='dark'] [role='menubar'] hr {
+    background-color: var(--ddm-divider);
+    border-color: var(--ddm-divider);
+  }
+
+  /* -------------------------------------------------------------------
+   * Menus, submenus e menus de contexto
+   *
+   * FRÁGIL: `.goog-menu`, `.goog-menuitem`, `.goog-menuitem-highlight` e
+   * `.goog-menuheader` são nomes internos do Google Docs.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] [role='menu'],
+  html[data-ddm-theme='dark'] .goog-menu {
+    background-color: var(--ddm-overlay);
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] [role='menuitem'],
+  html[data-ddm-theme='dark'] [role='menuitemcheckbox'],
+  html[data-ddm-theme='dark'] [role='menuitemradio'],
+  html[data-ddm-theme='dark'] .goog-menuitem {
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] [role='menuitem']:hover,
+  html[data-ddm-theme='dark'] [role='menuitemcheckbox']:hover,
+  html[data-ddm-theme='dark'] [role='menuitemradio']:hover,
+  html[data-ddm-theme='dark'] .goog-menuitem-highlight {
+    background-color: var(--ddm-hover);
+  }
+
+  html[data-ddm-theme='dark'] .goog-menuheader {
+    color: var(--ddm-text-muted);
+  }
+
+  /* -------------------------------------------------------------------
+   * Painéis laterais (comentários, esboço, navegação)
+   *
+   * FRÁGIL: `.docs-sidebar` e `.docs-comments` são nomes internos.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] [role='complementary'],
+  html[data-ddm-theme='dark'] [role='navigation'],
+  html[data-ddm-theme='dark'] .docs-sidebar {
+    background-color: var(--ddm-surface);
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] .docs-comments {
+    background-color: var(--ddm-surface);
+    color: var(--ddm-text);
+  }
+
+  /* -------------------------------------------------------------------
+   * Diálogos e caixas de configuração
+   *
+   * FRÁGIL: `.modal-dialog` e `.goog-dialog` são nomes internos.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] [role='dialog'],
+  html[data-ddm-theme='dark'] [aria-modal='true'],
+  html[data-ddm-theme='dark'] .modal-dialog,
+  html[data-ddm-theme='dark'] .goog-dialog {
+    background-color: var(--ddm-overlay);
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] [role='dialog'] [role='separator'],
+  html[data-ddm-theme='dark'] [role='dialog'] hr {
+    background-color: var(--ddm-divider);
+    border-color: var(--ddm-divider);
+  }
+
+  html[data-ddm-theme='dark'] [role='tablist'] {
+    border-color: var(--ddm-divider);
+  }
+
+  html[data-ddm-theme='dark'] [role='tab'] {
+    color: var(--ddm-text-muted);
+  }
+
+  html[data-ddm-theme='dark'] [role='tab'][aria-selected='true'] {
+    color: var(--ddm-text);
+    border-color: var(--ddm-accent);
+  }
+
+  /* -------------------------------------------------------------------
+   * Campos de entrada, áreas de pesquisa e controles
+   *
+   * Os campos são escopados a diálogos, barras de ferramentas e painéis,
+   * para que nenhum seletor alcance a área de edição do documento.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] [role='dialog'] input,
+  html[data-ddm-theme='dark'] [role='dialog'] textarea,
+  html[data-ddm-theme='dark'] [role='dialog'] select,
+  html[data-ddm-theme='dark'] [role='toolbar'] input,
+  html[data-ddm-theme='dark'] [role='toolbar'] textarea,
+  html[data-ddm-theme='dark'] [role='toolbar'] select,
+  html[data-ddm-theme='dark'] [role='complementary'] input,
+  html[data-ddm-theme='dark'] [role='complementary'] textarea,
+  html[data-ddm-theme='dark'] [role='navigation'] input,
+  html[data-ddm-theme='dark'] [role='navigation'] textarea,
+  html[data-ddm-theme='dark'] [role='searchbox'] {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+    border-color: var(--ddm-border);
+  }
+
+  html[data-ddm-theme='dark'] [role='dialog'] input::placeholder,
+  html[data-ddm-theme='dark'] [role='dialog'] textarea::placeholder,
+  html[data-ddm-theme='dark'] [role='toolbar'] input::placeholder,
+  html[data-ddm-theme='dark'] [role='complementary'] input::placeholder,
+  html[data-ddm-theme='dark'] [role='navigation'] input::placeholder {
+    color: var(--ddm-text-muted);
+  }
+
+  html[data-ddm-theme='dark'] [role='dialog'] input:focus,
+  html[data-ddm-theme='dark'] [role='dialog'] textarea:focus,
+  html[data-ddm-theme='dark'] [role='dialog'] select:focus,
+  html[data-ddm-theme='dark'] [role='toolbar'] input:focus,
+  html[data-ddm-theme='dark'] [role='complementary'] input:focus,
+  html[data-ddm-theme='dark'] [role='navigation'] input:focus,
+  html[data-ddm-theme='dark'] .docs-title-input:focus {
+    outline: 2px solid var(--ddm-focus);
+    outline-offset: 1px;
+  }
+
+  html[data-ddm-theme='dark'] [role='dialog'] input:disabled,
+  html[data-ddm-theme='dark'] [role='dialog'] textarea:disabled,
+  html[data-ddm-theme='dark'] [role='dialog'] button:disabled,
+  html[data-ddm-theme='dark'] [role='toolbar'] button:disabled {
+    background-color: var(--ddm-surface);
+    color: var(--ddm-text-muted);
+  }
+
+  html[data-ddm-theme='dark'] [role='dialog'] button {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+    border-color: var(--ddm-border);
+  }
+
+  html[data-ddm-theme='dark'] [role='dialog'] button:hover {
+    background-color: var(--ddm-active);
+  }
+
+  /* -------------------------------------------------------------------
+   * Barras de rolagem
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  html[data-ddm-theme='dark'] ::-webkit-scrollbar-track {
+    background-color: var(--ddm-bg);
+  }
+
+  html[data-ddm-theme='dark'] ::-webkit-scrollbar-thumb {
+    background-color: var(--ddm-border);
+    border-radius: 6px;
+  }
+
+  html[data-ddm-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ddm-text-muted);
+  }
+
+  /* -------------------------------------------------------------------
+   * Seleção de texto (somente campos e componentes de interface)
+   *
+   * A área de edição do documento não é alcançada por nenhuma regra
+   * `::selection`: a seleção do documento permanece nativa.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] input::selection,
+  html[data-ddm-theme='dark'] textarea::selection,
+  html[data-ddm-theme='dark'] select::selection,
+  html[data-ddm-theme='dark'] [role='dialog'] ::selection,
+  html[data-ddm-theme='dark'] [role='menu'] ::selection,
+  html[data-ddm-theme='dark'] [role='toolbar'] ::selection,
+  html[data-ddm-theme='dark'] [role='complementary'] ::selection,
+  html[data-ddm-theme='dark'] [role='navigation'] ::selection {
+    background-color: var(--ddm-selected);
+    color: var(--ddm-text);
+  }
+}
