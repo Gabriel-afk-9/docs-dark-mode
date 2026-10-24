@@ -12,13 +12,24 @@
  *    hora, sem recarregar a página e sem estilos inline residuais.
  * 3. Os tokens ficam no mesmo escopo do atributo, para desaparecerem junto
  *    com o tema.
- * 4. Sem `!important`, sem filtros, sem `url(...)`, sem `@import` e sem
- *    qualquer seletor do conteúdo do documento.
+ * 4. Sem filtros, sem `url(...)`, sem `@import` e sem qualquer seletor do
+ *    conteúdo do documento. Exceções de especificidade (`!important`) só
+ *    existem na allowlist do fim do arquivo, e cada uma exige uma medição
+ *    de cascata real.
  * 5. Os ícones do Google Docs não são tratados nesta versão: nenhum filtro
- *    é aplicado a eles. Se a validação no editor real mostrar ícones
- *    ilegíveis, a correção entra aqui, com evidência.
- * 6. `::selection` é restrito a campos e componentes de interface; a área
+ *    e nenhuma regra de `fill`/`stroke` é aplicada a eles. As regras de cor
+ *    dos contêineres deixam os ícones herdarem `currentColor`; se a
+ *    validação no editor real mostrar ícones ilegíveis, a correção entra
+ *    aqui, com evidência.
+ * 6. A interface é escurecida contêiner a contêiner. O fundo escuro nunca
+ *    é aplicado a `html` nem ao `body`: ali ele alcançaria a régua e o
+ *    entorno da página do documento.
+ * 7. `::selection` é restrito a campos e componentes de interface; a área
  *    de edição do documento mantém a seleção nativa.
+ * 8. Os contêineres da área de trabalho (`#docs-editor-container` e
+ *    `#docs-editor`) recebem **apenas** `background-color`. Eles pintam a
+ *    superfície atrás dos elementos da página; a folha do documento é
+ *    desenhada pelo editor por cima e não é alcançada por nenhuma regra.
  *
  * Legenda:
  *   `FRÁGIL` — seletor apoiado em nomes internos do Google Docs; pode
@@ -65,37 +76,424 @@
   /* -------------------------------------------------------------------
    * Estrutura do aplicativo
    *
-   * FRÁGIL: `#docs-titlebar`, `.docs-titlebar` e `.docs-title-input` são
-   * nomes internos do Google Docs. O contêiner do documento
-   * (`#docs-editor-container`) NÃO é tematizado nesta fase: ele hospeda a
-   * área de edição, que pertence ao tema da página do documento (Fase 4).
+   * FRÁGIL: `#docs-titlebar`, `#docs-titlebar-buttons`,
+   * `#docs-title-input-label-inner`, `.docs-titlebar` e `.docs-title-input`
+   * são nomes internos do Google Docs.
+   *
+   * O fundo escuro é aplicado apenas aos contêineres reais da interface.
+   * A regra de `background-color` em `html`/`body` foi removida de propósito:
+   * ela alcançava a régua e o entorno da página do documento. O contêiner
+   * do documento (`#docs-editor-container`) NÃO é tematizado nesta fase:
+   * ele hospeda a área de edição, que pertence ao tema da página do
+   * documento (Fase 4).
    * ----------------------------------------------------------------- */
-  html[data-ddm-theme='dark'] {
-    background-color: var(--ddm-bg);
-  }
-
-  html[data-ddm-theme='dark'] body {
-    background-color: var(--ddm-bg);
-  }
-
   html[data-ddm-theme='dark'] #docs-titlebar,
   html[data-ddm-theme='dark'] .docs-titlebar {
     background-color: var(--ddm-surface);
-    border-bottom: 1px solid var(--ddm-divider);
+    color: var(--ddm-text);
+    /* `box-shadow` em vez de `border-bottom`: a linha divisória é desenhada
+     * dentro da caixa, sem alterar a altura do contêiner. */
+    box-shadow: inset 0 -1px 0 var(--ddm-divider);
   }
 
+  /* Contêiner geral do cabeçalho: remove as superfícies claras que sobram
+   * entre a barra de título e os controles à direita. */
+  html[data-ddm-theme='dark'] #docs-chrome {
+    background-color: var(--ddm-surface);
+    color: var(--ddm-text);
+  }
+
+  /* Área dos controles à direita do título.
+   *
+   * Diagnóstico real, com o tema ligado: `.docs-titlebar-buttons` ainda
+   * pintava rgb(248, 250, 253). A âncora anterior (`#docs-titlebar`) não
+   * venceu a cascata; a âncora real é `#docs-chrome`, o contêiner geral do
+   * cabeçalho, confirmado pelo diagnóstico.
+   *
+   * O fundo do contêiner é neutro, mas as ações de destaque (o botão de
+   * compartilhamento) e os distintivos coloridos mantêm os próprios fundos:
+   * nenhuma regra de fundo é aplicada aos descendentes deste contêiner. */
+  html[data-ddm-theme='dark'] .docs-titlebar-buttons,
+  html[data-ddm-theme='dark'] #docs-chrome .docs-titlebar-buttons {
+    background-color: var(--ddm-surface);
+    color: var(--ddm-text);
+  }
+
+  /* -------------------------------------------------------------------
+   * Título do documento
+   *
+   * Diagnóstico real, com o tema ligado: o input do título e o rótulo têm
+   * dimensões e posições sobrepostas e ambos estavam visíveis, com texto
+   * claro nos dois — daí a aparência duplicada. O input herdava a cor clara
+   * declarada em `#docs-title-widget`.
+   *
+   * Estado normal: o input não pinta texto — `color` e
+   * `-webkit-text-fill-color` ficam transparentes — e o rótulo é quem
+   * desenha o título. Estado de edição: `#docs-title-widget:focus-within`
+   * devolve ao campo a cor do texto, o fundo e a borda, e o rótulo
+   * sobreposto fica invisível. Ao sair do foco o estado normal volta
+   * sozinho, porque é um estado de CSS: o input não fica escondido
+   * permanentemente, o valor dele não é tocado e a função de renomear
+   * continua intacta.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] #docs-title-input-label-inner,
+  html[data-ddm-theme='dark'] .docs-title-input-label {
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] #docs-title-widget {
+    color: var(--ddm-text);
+  }
+
+  /* Estado normal: campo e wrapper sem moldura nem fundo, integrados à
+   * barra escura. */
+  html[data-ddm-theme='dark'] #docs-title-input-wrapper,
   html[data-ddm-theme='dark'] .docs-title-input {
+    background-color: transparent;
+    border-color: transparent;
+  }
+
+  /* Estado normal: o input não pinta o texto do título. O
+   * `-webkit-text-fill-color` é declarado junto porque tem precedência
+   * sobre `color` e é o mecanismo que o editor usa para sobrepor o campo
+   * ao rótulo — sem ele, a cor transparente de `color` não esconderia o
+   * texto duplicado. */
+  html[data-ddm-theme='dark'] .docs-title-input,
+  html[data-ddm-theme='dark'] .docs-title-input input {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Estado de edição: `#docs-title-widget:focus-within` é o gatilho
+   * confirmado pelo diagnóstico. O `:focus` do próprio campo é apenas a
+   * rede de segurança para o caso de o campo não estar dentro do widget. */
+  html[data-ddm-theme='dark'] #docs-title-widget:focus-within .docs-title-input,
+  html[data-ddm-theme='dark'] #docs-title-widget:focus-within input.docs-title-input,
+  html[data-ddm-theme='dark'] #docs-title-widget:focus-within .docs-title-input input,
+  html[data-ddm-theme='dark'] .docs-title-input:focus {
+    color: var(--ddm-text);
+    -webkit-text-fill-color: currentColor;
+    background-color: var(--ddm-surface-raised);
+    border-color: var(--ddm-border);
+  }
+
+  /* O wrapper do campo recebe a superfície de edição junto com ele. */
+  html[data-ddm-theme='dark'] #docs-title-widget:focus-within #docs-title-input-wrapper {
+    color: var(--ddm-text);
+    background-color: var(--ddm-surface-raised);
+    border-color: var(--ddm-border);
+  }
+
+  /* O rótulo sobreposto fica invisível enquanto o campo recebe foco: o
+   * texto fica transparente e o elemento não é pintado, mas continua
+   * ocupando o mesmo espaço — nada do layout se move. */
+  html[data-ddm-theme='dark'] #docs-title-widget:focus-within .docs-title-input-label,
+  html[data-ddm-theme='dark'] #docs-title-widget:focus-within #docs-title-input-label-inner {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    visibility: hidden;
+  }
+
+  html[data-ddm-theme='dark'] .docs-title-input:focus-visible {
+    outline: 2px solid var(--ddm-focus);
+    outline-offset: 1px;
+  }
+
+  /* O elemento em foco precisa mostrar o texto: o editor o mantém
+   * transparente no estado normal, e é exatamente por isso que ele não
+   * recebe cor fora do foco. */
+  html[data-ddm-theme='dark'] #docs-title-input-wrapper :focus,
+  html[data-ddm-theme='dark'] .docs-title-input :focus,
+  html[data-ddm-theme='dark'] #docs-title-widget :focus {
+    color: var(--ddm-text);
+    -webkit-text-fill-color: currentColor;
+  }
+
+  /* O placeholder continua visível quando o documento não tem título: ele
+   * só aparece com o campo vazio, portanto não duplica nada. */
+  html[data-ddm-theme='dark'] .docs-title-input::placeholder {
+    color: var(--ddm-text-muted);
+    -webkit-text-fill-color: currentColor;
+  }
+
+  /* -------------------------------------------------------------------
+   * Barra de menus
+   *
+   * FRÁGIL: `#docs-menubar` e os IDs dos itens são nomes internos do Google
+   * Docs. A classe `.menu-button` é a classe comum confirmada dos itens.
+   *
+   * O fundo do contêiner já estava escuro e é preservado. A correção desta
+   * rodada é a cor do texto dos itens, que herdava a cor escura do editor,
+   * acrescida do realce de hover e do foco visível. Nenhum estado
+   * "selecionado" é aplicado: eles só existem onde o Google Docs os define.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] #docs-menubar {
+    background-color: var(--ddm-surface);
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] #docs-file-menu,
+  html[data-ddm-theme='dark'] #docs-edit-menu,
+  html[data-ddm-theme='dark'] #docs-view-menu,
+  html[data-ddm-theme='dark'] #docs-insert-menu,
+  html[data-ddm-theme='dark'] #docs-format-menu,
+  html[data-ddm-theme='dark'] #docs-tools-menu,
+  html[data-ddm-theme='dark'] #docs-zotero-menubutton,
+  html[data-ddm-theme='dark'] #docs-help-menu,
+  html[data-ddm-theme='dark'] #docs-menubar .menu-button {
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] #docs-file-menu:hover,
+  html[data-ddm-theme='dark'] #docs-edit-menu:hover,
+  html[data-ddm-theme='dark'] #docs-view-menu:hover,
+  html[data-ddm-theme='dark'] #docs-insert-menu:hover,
+  html[data-ddm-theme='dark'] #docs-format-menu:hover,
+  html[data-ddm-theme='dark'] #docs-tools-menu:hover,
+  html[data-ddm-theme='dark'] #docs-zotero-menubutton:hover,
+  html[data-ddm-theme='dark'] #docs-help-menu:hover,
+  html[data-ddm-theme='dark'] #docs-menubar .menu-button:hover {
+    background-color: var(--ddm-hover);
+  }
+
+  html[data-ddm-theme='dark'] #docs-file-menu:focus-visible,
+  html[data-ddm-theme='dark'] #docs-edit-menu:focus-visible,
+  html[data-ddm-theme='dark'] #docs-view-menu:focus-visible,
+  html[data-ddm-theme='dark'] #docs-insert-menu:focus-visible,
+  html[data-ddm-theme='dark'] #docs-format-menu:focus-visible,
+  html[data-ddm-theme='dark'] #docs-tools-menu:focus-visible,
+  html[data-ddm-theme='dark'] #docs-zotero-menubutton:focus-visible,
+  html[data-ddm-theme='dark'] #docs-help-menu:focus-visible,
+  html[data-ddm-theme='dark'] #docs-menubar .menu-button:focus-visible {
+    outline: 2px solid var(--ddm-focus);
+    outline-offset: 1px;
+  }
+
+  /* -------------------------------------------------------------------
+   * Barra de ferramentas
+   *
+   * FRÁGIL: `#docs-toolbar-wrapper` e os IDs dos controles são nomes
+   * internos do Google Docs. `.goog-toolbar-button`,
+   * `.goog-toolbar-toggle-button`, `.docs-font-size-inc-dec-action-button`,
+   * `.goog-toolbar-combo-button-input` e `.docs-omnibox-input` são classes
+   * internas confirmadas pelo diagnóstico.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] #docs-toolbar-wrapper {
+    /* Exceção de especificidade — ver a allowlist no fim do arquivo.
+     *
+     * Medição de cascata (2026-10-21, editor real do Google Docs):
+     *  - fundo computado da barra: rgb(240, 244, 249);
+     *  - atributo `style` inline: apenas `width: 899px`;
+     *  - uma declaração normal do tema não vencia a cascata;
+     *  - uma declaração de autor com `!important` vencia;
+     *  - remover o atributo `style` inline não alterava o fundo.
+     * Ou seja: o fundo vem de uma regra do editor com prioridade maior, e
+     * a única forma de vencê-la pela folha de estilo é a exceção abaixo. */
+    background-color: var(--ddm-surface) !important;
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] #spellGrammarCheckButton,
+  html[data-ddm-theme='dark'] #formatPainterButton,
+  html[data-ddm-theme='dark'] #fontSizeDecrement,
+  html[data-ddm-theme='dark'] #fontSizeIncrement,
+  html[data-ddm-theme='dark'] #moreButton,
+  html[data-ddm-theme='dark'] #viewModeButton,
+  html[data-ddm-theme='dark'] #docs-toolbar-mode-switcher,
+  html[data-ddm-theme='dark'] #undoButton,
+  html[data-ddm-theme='dark'] #redoButton,
+  html[data-ddm-theme='dark'] #printButton,
+  html[data-ddm-theme='dark'] .goog-toolbar-button,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button {
+    background-color: transparent;
+    color: var(--ddm-text);
+  }
+
+  /* Camada interna dos controles da barra de ferramentas.
+   *
+   * O branco que aparecia atrás dos ícones não é pintado pelo elemento
+   * externo que tem o id do botão, mas por uma camada interna dele (a
+   * "caixa" do botão). A regra é ancorada nas classes confirmadas dos
+   * controles e alcança apenas os filhos diretos: não há varredura de SVG,
+   * nem de descendentes da interface inteira.
+   *
+   * A cor do texto é declarada aqui porque os ícones do Google Docs não
+   * são SVG — o diagnóstico não encontrou nenhum dentro da barra. Eles são
+   * desenhados por fonte ou por máscara e seguem a cor do controle. */
+  html[data-ddm-theme='dark'] .goog-toolbar-button > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-button > span,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button > span,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button > div,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button > span {
+    background-color: transparent;
+    color: var(--ddm-text);
+  }
+
+  /* Estado ativo/selecionado dos alternadores.
+   *
+   * O atributo exato do Google Docs ainda não foi confirmado (pendência
+   * P11). Estas regras usam o atributo ARIA padrão dos botões de alternância:
+   * se o editor o usar, o estado selecionado volta a ser visível; se não
+   * usar, as regras são inertes. */
+  html[data-ddm-theme='dark'] .goog-toolbar-button[aria-pressed='true'],
+  html[data-ddm-theme='dark'] .goog-toolbar-button[aria-pressed='true'] > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-button[aria-pressed='true'] > span,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button[aria-pressed='true'],
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button[aria-pressed='true'] > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button[aria-pressed='true'] > span,
+  html[data-ddm-theme='dark'] .goog-toolbar-button[aria-checked='true'],
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button[aria-checked='true'] {
+    background-color: var(--ddm-active);
+  }
+
+  html[data-ddm-theme='dark'] .goog-toolbar-button:disabled,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button:disabled,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button:disabled,
+  html[data-ddm-theme='dark'] .goog-toolbar-button[aria-disabled='true'],
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button[aria-disabled='true'],
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button[aria-disabled='true'],
+  html[data-ddm-theme='dark'] .goog-toolbar-button:disabled > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-button:disabled > span,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button:disabled > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button:disabled > span,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button:disabled > div,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button:disabled > span,
+  html[data-ddm-theme='dark'] .goog-toolbar-button[aria-disabled='true'] > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-button[aria-disabled='true'] > span,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button[aria-disabled='true'] > div,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button[aria-disabled='true'] > span,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button[aria-disabled='true'] > div,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button[aria-disabled='true'] > span {
+    background-color: transparent;
+    color: var(--ddm-text-muted);
+  }
+
+  html[data-ddm-theme='dark'] #spellGrammarCheckButton:hover,
+  html[data-ddm-theme='dark'] #formatPainterButton:hover,
+  html[data-ddm-theme='dark'] #fontSizeDecrement:hover,
+  html[data-ddm-theme='dark'] #fontSizeIncrement:hover,
+  html[data-ddm-theme='dark'] #moreButton:hover,
+  html[data-ddm-theme='dark'] #viewModeButton:hover,
+  html[data-ddm-theme='dark'] #docs-toolbar-mode-switcher:hover,
+  html[data-ddm-theme='dark'] #undoButton:hover,
+  html[data-ddm-theme='dark'] #redoButton:hover,
+  html[data-ddm-theme='dark'] #printButton:hover,
+  html[data-ddm-theme='dark'] .goog-toolbar-button:hover,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button:hover,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button:hover {
+    background-color: var(--ddm-hover);
+  }
+
+  html[data-ddm-theme='dark'] #spellGrammarCheckButton:focus-visible,
+  html[data-ddm-theme='dark'] #formatPainterButton:focus-visible,
+  html[data-ddm-theme='dark'] #fontSizeDecrement:focus-visible,
+  html[data-ddm-theme='dark'] #fontSizeIncrement:focus-visible,
+  html[data-ddm-theme='dark'] #moreButton:focus-visible,
+  html[data-ddm-theme='dark'] #viewModeButton:focus-visible,
+  html[data-ddm-theme='dark'] #docs-toolbar-mode-switcher:focus-visible,
+  html[data-ddm-theme='dark'] #undoButton:focus-visible,
+  html[data-ddm-theme='dark'] #redoButton:focus-visible,
+  html[data-ddm-theme='dark'] #printButton:focus-visible,
+  html[data-ddm-theme='dark'] .goog-toolbar-button:focus-visible,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button:focus-visible,
+  html[data-ddm-theme='dark'] .docs-font-size-inc-dec-action-button:focus-visible,
+  html[data-ddm-theme='dark'] #zoomSelect:focus-visible,
+  html[data-ddm-theme='dark'] #headingStyleSelect:focus-visible,
+  html[data-ddm-theme='dark'] #fontSizeSelect:focus-visible,
+  html[data-ddm-theme='dark'] #docs-font-family:focus-visible,
+  html[data-ddm-theme='dark'] .goog-toolbar-combo-button-input:focus-visible,
+  html[data-ddm-theme='dark'] .docs-omnibox-input:focus-visible {
+    outline: 2px solid var(--ddm-focus);
+    outline-offset: 1px;
+  }
+
+  html[data-ddm-theme='dark'] #spellGrammarCheckButton:disabled,
+  html[data-ddm-theme='dark'] #formatPainterButton:disabled,
+  html[data-ddm-theme='dark'] #fontSizeDecrement:disabled,
+  html[data-ddm-theme='dark'] #fontSizeIncrement:disabled,
+  html[data-ddm-theme='dark'] #moreButton:disabled,
+  html[data-ddm-theme='dark'] #viewModeButton:disabled,
+  html[data-ddm-theme='dark'] #undoButton:disabled,
+  html[data-ddm-theme='dark'] #redoButton:disabled,
+  html[data-ddm-theme='dark'] #printButton:disabled,
+  html[data-ddm-theme='dark'] #spellGrammarCheckButton[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #formatPainterButton[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #fontSizeDecrement[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #fontSizeIncrement[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #moreButton[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #viewModeButton[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #undoButton[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #redoButton[aria-disabled='true'],
+  html[data-ddm-theme='dark'] #printButton[aria-disabled='true'],
+  html[data-ddm-theme='dark'] .goog-toolbar-button:disabled,
+  html[data-ddm-theme='dark'] .goog-toolbar-toggle-button:disabled {
+    background-color: transparent;
+    color: var(--ddm-text-muted);
+  }
+
+  html[data-ddm-theme='dark'] #zoomSelect,
+  html[data-ddm-theme='dark'] #headingStyleSelect,
+  html[data-ddm-theme='dark'] #fontSizeSelect,
+  html[data-ddm-theme='dark'] #docs-font-family {
     background-color: var(--ddm-surface-raised);
     color: var(--ddm-text);
     border-color: var(--ddm-border);
   }
 
-  html[data-ddm-theme='dark'] .docs-title-input::placeholder {
+  /* Campos de texto da barra: o diagnóstico encontrou texto escuro dentro
+   * deles sobre o fundo já escurecido da barra. */
+  html[data-ddm-theme='dark'] .goog-toolbar-combo-button-input,
+  html[data-ddm-theme='dark'] .docs-omnibox-input {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+    border-color: var(--ddm-border);
+  }
+
+  /* Campo de busca (omnibox).
+   *
+   * Diagnóstico real, com o tema ligado: `input.docs-omnibox-input` dentro
+   * de `#docs-omnibox-toolbar`, com fundo rgb(240, 244, 249) e texto
+   * rgb(31, 31, 31) — a regra anterior, ancorada só na classe, não vencia
+   * a cascata. Ancorar no ancestral real resolve sem `!important`.
+   *
+   * A borda, o foco visível e a funcionalidade da busca são preservados: só
+   * a superfície e a cor do texto são declaradas aqui. */
+  html[data-ddm-theme='dark'] #docs-omnibox-toolbar .docs-omnibox-input {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+    border-color: var(--ddm-border);
+  }
+
+  /* Seletor de modo de edição.
+   *
+   * Diagnóstico real, com o tema ligado: `#docs-toolbar-mode-switcher`
+   * dentro de `#docs-side-toolbar`, com fundo rgb(240, 244, 249) e texto
+   * rgb(232, 234, 237). A regra ancorada só no id não vencia a cascata;
+   * ancorar no ancestral real resolve.
+   *
+   * O hover é declarado com a mesma âncora — do contrário, a regra base
+   * (mais específica) venceria o hover e o realce sumiria. O foco visível
+   * continua pela regra geral de `:focus-visible`, que declara `outline` e
+   * não concorre com o fundo. O estado funcional do controle não é
+   * tocado: só cores são declaradas. */
+  html[data-ddm-theme='dark'] #docs-side-toolbar #docs-toolbar-mode-switcher {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] #docs-side-toolbar #docs-toolbar-mode-switcher:hover {
+    background-color: var(--ddm-hover);
+  }
+
+  html[data-ddm-theme='dark'] .goog-toolbar-combo-button-input::placeholder,
+  html[data-ddm-theme='dark'] .docs-omnibox-input::placeholder {
     color: var(--ddm-text-muted);
   }
 
   /* -------------------------------------------------------------------
-   * Barras de ferramentas e barras de menu
+   * Barras de ferramentas e barras de menu (fallback por papel ARIA)
    * ----------------------------------------------------------------- */
   html[data-ddm-theme='dark'] [role='toolbar'],
   html[data-ddm-theme='dark'] [role='menubar'] {
@@ -125,6 +523,36 @@
   html[data-ddm-theme='dark'] [role='menubar'] hr {
     background-color: var(--ddm-divider);
     border-color: var(--ddm-divider);
+  }
+
+  /* -------------------------------------------------------------------
+   * Régua e área de trabalho
+   *
+   * FRÁGIL: `#kix-horizontal-ruler`, `#kix-vertical-ruler`,
+   * `.docs-ruler-background-inner`, `#docs-editor-container` e `#docs-editor`
+   * são nomes internos do Google Docs.
+   *
+   * Estas regras pintam **apenas superfícies de fundo**. Nenhuma cor de
+   * texto é declarada aqui e nenhum descendente é estilizado: a régua e o
+   * entorno da folha escurecem, enquanto a folha e o conteúdo editável
+   * continuam sendo desenhados pelo editor por cima, com as cores
+   * originais. Nenhum elemento da folha é alcançado por qualquer regra.
+   *
+   * A identificação do elemento da folha pelo diagnóstico segue pendente
+   * (`folha: null`): a preservação do branco da folha depende de o editor
+   * pintá-la por cima e precisa ser confirmada na validação visual. Se a
+   * folha escurecer, a correção passa a exigir o elemento real da página —
+   * nenhuma regra compensatória será criada antes disso.
+   * ----------------------------------------------------------------- */
+  html[data-ddm-theme='dark'] #kix-horizontal-ruler,
+  html[data-ddm-theme='dark'] #kix-vertical-ruler,
+  html[data-ddm-theme='dark'] .docs-ruler-background-inner {
+    background-color: var(--ddm-surface-raised);
+  }
+
+  html[data-ddm-theme='dark'] #docs-editor-container,
+  html[data-ddm-theme='dark'] #docs-editor {
+    background-color: var(--ddm-bg);
   }
 
   /* -------------------------------------------------------------------
@@ -267,22 +695,50 @@
 
   /* -------------------------------------------------------------------
    * Barras de rolagem
+   *
+   * As barras de rolagem são escopadas aos contêineres da interface: a
+   * área do documento e a régua mantêm as barras nativas do navegador,
+   * porque não pertencem ao tema da interface.
    * ----------------------------------------------------------------- */
-  html[data-ddm-theme='dark'] ::-webkit-scrollbar {
+  html[data-ddm-theme='dark'] #docs-titlebar ::-webkit-scrollbar,
+  html[data-ddm-theme='dark'] #docs-menubar ::-webkit-scrollbar,
+  html[data-ddm-theme='dark'] #docs-toolbar-wrapper ::-webkit-scrollbar,
+  html[data-ddm-theme='dark'] [role='menu'] ::-webkit-scrollbar,
+  html[data-ddm-theme='dark'] [role='dialog'] ::-webkit-scrollbar,
+  html[data-ddm-theme='dark'] [role='complementary'] ::-webkit-scrollbar,
+  html[data-ddm-theme='dark'] [role='navigation'] ::-webkit-scrollbar {
     width: 12px;
     height: 12px;
   }
 
-  html[data-ddm-theme='dark'] ::-webkit-scrollbar-track {
+  html[data-ddm-theme='dark'] #docs-titlebar ::-webkit-scrollbar-track,
+  html[data-ddm-theme='dark'] #docs-menubar ::-webkit-scrollbar-track,
+  html[data-ddm-theme='dark'] #docs-toolbar-wrapper ::-webkit-scrollbar-track,
+  html[data-ddm-theme='dark'] [role='menu'] ::-webkit-scrollbar-track,
+  html[data-ddm-theme='dark'] [role='dialog'] ::-webkit-scrollbar-track,
+  html[data-ddm-theme='dark'] [role='complementary'] ::-webkit-scrollbar-track,
+  html[data-ddm-theme='dark'] [role='navigation'] ::-webkit-scrollbar-track {
     background-color: var(--ddm-bg);
   }
 
-  html[data-ddm-theme='dark'] ::-webkit-scrollbar-thumb {
+  html[data-ddm-theme='dark'] #docs-titlebar ::-webkit-scrollbar-thumb,
+  html[data-ddm-theme='dark'] #docs-menubar ::-webkit-scrollbar-thumb,
+  html[data-ddm-theme='dark'] #docs-toolbar-wrapper ::-webkit-scrollbar-thumb,
+  html[data-ddm-theme='dark'] [role='menu'] ::-webkit-scrollbar-thumb,
+  html[data-ddm-theme='dark'] [role='dialog'] ::-webkit-scrollbar-thumb,
+  html[data-ddm-theme='dark'] [role='complementary'] ::-webkit-scrollbar-thumb,
+  html[data-ddm-theme='dark'] [role='navigation'] ::-webkit-scrollbar-thumb {
     background-color: var(--ddm-border);
     border-radius: 6px;
   }
 
-  html[data-ddm-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  html[data-ddm-theme='dark'] #docs-titlebar ::-webkit-scrollbar-thumb:hover,
+  html[data-ddm-theme='dark'] #docs-menubar ::-webkit-scrollbar-thumb:hover,
+  html[data-ddm-theme='dark'] #docs-toolbar-wrapper ::-webkit-scrollbar-thumb:hover,
+  html[data-ddm-theme='dark'] [role='menu'] ::-webkit-scrollbar-thumb:hover,
+  html[data-ddm-theme='dark'] [role='dialog'] ::-webkit-scrollbar-thumb:hover,
+  html[data-ddm-theme='dark'] [role='complementary'] ::-webkit-scrollbar-thumb:hover,
+  html[data-ddm-theme='dark'] [role='navigation'] ::-webkit-scrollbar-thumb:hover {
     background-color: var(--ddm-text-muted);
   }
 
@@ -303,4 +759,25 @@
     background-color: var(--ddm-selected);
     color: var(--ddm-text);
   }
+
+  /* -------------------------------------------------------------------
+   * EXCEÇÕES DE ESPECIFICIDADE — ALLOWLIST
+   *
+   * Esta é a única fonte de `!important` da folha. Cada entrada exige uma
+   * medição de cascata real e é verificada pelo contrato estático
+   * (`tests/unit/theme-css.test.ts`), que reprova qualquer ocorrência fora
+   * desta lista e qualquer entrada sem uso.
+   *
+   * 1. `#docs-toolbar-wrapper` / `background-color`
+   *    Medição de cascata (2026-10-21, editor real do Google Docs):
+   *      - fundo computado da barra: rgb(240, 244, 249);
+   *      - atributo `style` inline: apenas `width: 899px`;
+   *      - declaração normal do tema: não vencia a cascata;
+   *      - declaração de autor com `!important`: vencia;
+   *      - remoção do atributo `style` inline: não alterava o fundo.
+   *
+   * A regra correspondente continua escopada por
+   * `html[data-ddm-theme='dark']` e dentro de `@media screen`: com o tema
+   * desligado ou na impressão ela não tem efeito.
+   * ----------------------------------------------------------------- */
 }
