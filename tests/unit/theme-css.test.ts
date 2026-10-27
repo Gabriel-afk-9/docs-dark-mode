@@ -65,9 +65,20 @@ const SELECTION_SCOPE = [
  *    atributo `style` inline apenas com `width: 899px`; declaração normal do
  *    tema não vencia a cascata; declaração de autor com `!important` vencia;
  *    remover o atributo `style` inline não alterava o fundo.
+ *
+ * 2. `#kix-horizontal-ruler` / `background-color`
+ *    Medição (2026-10-27, editor real): fundo computado rgb(248, 250, 253);
+ *    sem `background-image`; declaração normal do tema não vencia a cascata,
+ *    nem o seletor reforçado com o ID e todas as classes do elemento;
+ *    declaração de autor com `!important` vencia.
+ *
+ * 3. `#kix-vertical-ruler` / `background-color`
+ *    Mesma medição do item 2, repetida no elemento vertical.
  */
 const IMPORTANT_ALLOWLIST: ReadonlyArray<{ selector: string; property: string }> = [
   { selector: `${SCOPE} #docs-toolbar-wrapper`, property: 'background-color' },
+  { selector: `${SCOPE} #kix-horizontal-ruler`, property: 'background-color' },
+  { selector: `${SCOPE} #kix-vertical-ruler`, property: 'background-color' },
 ];
 
 /**
@@ -574,6 +585,94 @@ describe('folha de estilo da interface', () => {
       expect(declarationValue(rule?.body ?? '', 'background-color')).toBe('transparent');
       expect(declarationValue(rule?.body ?? '', 'color')).toBe('var(--ddm-text)');
     }
+  });
+
+  it('escurece o grupo de formatação ancorado em #docs-toolbar', () => {
+    // Medição real (2026-10-27): o fundo claro dos botões vem de regras por
+    // ID do editor (1,0,0). A âncora em `#docs-toolbar` eleva a regra para
+    // (1,2,1) e vence a cascata sem `!important`.
+    for (const classe of [
+      '.goog-toolbar-button',
+      '.goog-toolbar-toggle-button',
+      '.goog-toolbar-menu-button',
+    ]) {
+      const rule = ruleFor(`${SCOPE} #docs-toolbar ${classe}`);
+      expect(rule, `regra ausente para ${classe}`).toBeDefined();
+      expect(declarationValue(rule?.body ?? '', 'background-color')).toBe('transparent');
+      expect(declarationValue(rule?.body ?? '', 'color')).toBe('var(--ddm-text)');
+    }
+
+    const hover = ruleFor(`${SCOPE} #docs-toolbar .goog-toolbar-button:hover`);
+    expect(hover, 'regra de hover ausente para o grupo de formatação').toBeDefined();
+    expect(declarationValue(hover?.body ?? '', 'background-color')).toBe('var(--ddm-hover)');
+  });
+
+  it('preserva o estado ativo confirmado dos alternadores', () => {
+    // Classe real medida no DOM: `goog-toolbar-button-checked`.
+    const checked = ruleFor(`${SCOPE} #docs-toolbar .goog-toolbar-button-checked`);
+    expect(checked, 'regra ausente para o estado ativo').toBeDefined();
+    expect(declarationValue(checked?.body ?? '', 'background-color')).toBe('var(--ddm-selected)');
+    expect(declarationValue(checked?.body ?? '', 'color')).toBe('var(--ddm-accent)');
+
+    const hover = ruleFor(`${SCOPE} #docs-toolbar .goog-toolbar-button-checked:hover`);
+    expect(hover, 'regra ausente para o hover do estado ativo').toBeDefined();
+    expect(declarationValue(hover?.body ?? '', 'background-color')).toBe('var(--ddm-active)');
+
+    const camada = ruleFor(`${SCOPE} #docs-toolbar .goog-toolbar-button-checked > div`);
+    expect(camada, 'regra ausente para a camada interna do estado ativo').toBeDefined();
+    expect(declarationValue(camada?.body ?? '', 'background-color')).toBe('transparent');
+  });
+
+  it('reafirma a superfície dos seletores da barra de ferramentas', () => {
+    // Eles também usam as classes do grupo: sem a reafirmação, a regra do
+    // grupo achataria a superfície elevada validada nas rodadas anteriores.
+    for (const id of [
+      '#zoomSelect',
+      '#headingStyleSelect',
+      '#fontSizeSelect',
+      '#docs-font-family',
+    ]) {
+      const rule = ruleFor(`${SCOPE} #docs-toolbar ${id}`);
+      expect(rule, `regra ausente para ${id}`).toBeDefined();
+      expect(declarationValue(rule?.body ?? '', 'background-color')).toBe(
+        'var(--ddm-surface-raised)',
+      );
+      expect(declarationValue(rule?.body ?? '', 'color')).toBe('var(--ddm-text)');
+    }
+  });
+
+  it('escurece a régua com a exceção medida', () => {
+    for (const id of ['#kix-horizontal-ruler', '#kix-vertical-ruler']) {
+      const rule = ruleFor(`${SCOPE} ${id}`);
+      expect(rule, `regra ausente para ${id}`).toBeDefined();
+
+      const background = declarationsOf(rule?.body ?? '').find(
+        (declaration) => declaration.property === 'background-color',
+      );
+      expect(background?.value).toBe('var(--ddm-surface-raised)');
+      expect(background?.important, `${id} exige a exceção medida`).toBe(true);
+      expect(declarationValue(rule?.body ?? '', 'color')).toBe('var(--ddm-text-muted)');
+    }
+
+    // A camada interna não foi medida com exceção: fica sem `!important`.
+    const inner = ruleFor(`${SCOPE} .docs-ruler-background-inner`);
+    expect(inner, 'regra ausente para a camada interna da régua').toBeDefined();
+    expect(declarationValue(inner?.body ?? '', 'color')).toBe('var(--ddm-text-muted)');
+  });
+
+  it('escurece o botão do seletor de capítulos', () => {
+    const alvo = '#kix-appview .appsKixClientUiWizMiniChapterSwitcherSurfaceSwitcher';
+    const rule = ruleFor(`${SCOPE} ${alvo}`);
+    expect(rule, 'regra ausente para o botão do seletor de capítulos').toBeDefined();
+    expect(declarationValue(rule?.body ?? '', 'background-color')).toBe(
+      'var(--ddm-surface-raised)',
+    );
+    expect(declarationValue(rule?.body ?? '', 'color')).toBe('var(--ddm-text)');
+    expect(declarationValue(rule?.body ?? '', 'border-color')).toBe('var(--ddm-border)');
+
+    const hover = ruleFor(`${SCOPE} ${alvo}:hover`);
+    expect(hover, 'regra de hover ausente para o botão do seletor de capítulos').toBeDefined();
+    expect(declarationValue(hover?.body ?? '', 'background-color')).toBe('var(--ddm-hover)');
   });
 
   it('trata os campos da barra de ferramentas como controles escuros', () => {

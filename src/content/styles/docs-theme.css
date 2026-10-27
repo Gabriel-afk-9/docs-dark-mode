@@ -492,6 +492,63 @@
     color: var(--ddm-text-muted);
   }
 
+  /* Grupo de formatação: negrito, itálico, sublinhado, cor do texto, cor de
+   * destaque, link, comentário, imagem, alinhamento, espaçamento, listas e
+   * limpar formatação.
+   *
+   * Diagnóstico real (2026-10-27, editor autenticado):
+   *  - `#italicButton`, `#underlineButton`, `#textColorButton` e demais
+   *    estavam com fundo rgb(240, 244, 249);
+   *  - `#spellGrammarCheckButton` e `#formatPainterButton`, que têm
+   *    exatamente as mesmas classes, estavam transparentes;
+   *  - portanto o branco vem de uma regra por ID do editor (1,0,0), que
+   *    vence a regra por classe (0,2,1) declarada acima;
+   *  - a âncora em `#docs-toolbar` eleva a regra para (1,2,1) e vence o ID
+   *    isolado **sem `!important`**;
+   *  - `#textColorButton` e `#bgColorButton` também declaravam `color`
+   *    escura translúcida, por isso a cor clara é reafirmada aqui.
+   *
+   * O estado ativo foi confirmado no DOM: a classe real é
+   * `goog-toolbar-button-checked` (o negrito estava com fundo
+   * rgb(211, 227, 253) e ícone rgb(11, 87, 208)). Hover e estado ativo são
+   * declarados na mesma âncora para não perderem a cascata. */
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-button,
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-toggle-button,
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-menu-button {
+    background-color: transparent;
+    color: var(--ddm-text);
+  }
+
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-button:hover,
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-toggle-button:hover,
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-menu-button:hover {
+    background-color: var(--ddm-hover);
+  }
+
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-button-checked {
+    background-color: var(--ddm-selected);
+    color: var(--ddm-accent);
+  }
+
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-button-checked:hover {
+    background-color: var(--ddm-active);
+  }
+
+  html[data-ddm-theme='dark'] #docs-toolbar .goog-toolbar-button-checked > div {
+    background-color: transparent;
+  }
+
+  /* Os seletores de estilo, família, corpo e zoom também usam as classes
+   * do grupo: sem esta reafirmação, a regra (1,2,1) achataria a superfície
+   * elevada deles, já validada nas rodadas anteriores (1,0,0 → 1,1,0). */
+  html[data-ddm-theme='dark'] #docs-toolbar #zoomSelect,
+  html[data-ddm-theme='dark'] #docs-toolbar #headingStyleSelect,
+  html[data-ddm-theme='dark'] #docs-toolbar #fontSizeSelect,
+  html[data-ddm-theme='dark'] #docs-toolbar #docs-font-family {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+  }
+
   /* -------------------------------------------------------------------
    * Barras de ferramentas e barras de menu (fallback por papel ARIA)
    * ----------------------------------------------------------------- */
@@ -532,11 +589,21 @@
    * `.docs-ruler-background-inner`, `#docs-editor-container` e `#docs-editor`
    * são nomes internos do Google Docs.
    *
-   * Estas regras pintam **apenas superfícies de fundo**. Nenhuma cor de
-   * texto é declarada aqui e nenhum descendente é estilizado: a régua e o
-   * entorno da folha escurecem, enquanto a folha e o conteúdo editável
-   * continuam sendo desenhados pelo editor por cima, com as cores
-   * originais. Nenhum elemento da folha é alcançado por qualquer regra.
+   * Nestas regras só a **superfície** da régua é alterada. A cor do texto é
+   * declarada apenas na régua (números das marcações), que são texto e
+   * herdavam rgb(31, 31, 31) — sobre fundo escuro ficariam ilegíveis.
+   * Nenhum descendente é estilizado e nenhum elemento da folha é alcançado:
+   * a folha e o conteúdo editável continuam sendo desenhados pelo editor
+   * por cima, com as cores originais.
+   *
+   * MEDIÇÃO DE CASCATA (2026-10-27, editor autenticado): o fundo da régua
+   * é declarado pelo editor com `!important` — nenhum seletor normal vence,
+   * nem o próprio ID com todas as classes
+   * (`#kix-horizontal-ruler.docs-ui-unprintable.docs-horizontal-ruler.docs-ruler`,
+   * 1 ID + 4 classes); só uma declaração de autor com `!important` venceu.
+   * São as 2ª e 3ª entradas da allowlist no fim do arquivo. A cor do texto
+   * foi medida sem `!important` e venceu normalmente; por isso
+   * `.docs-ruler-background-inner` (não medido) fica sem exceção.
    *
    * A identificação do elemento da folha pelo diagnóstico segue pendente
    * (`folha: null`): a preservação do branco da folha depende de o editor
@@ -545,14 +612,36 @@
    * nenhuma regra compensatória será criada antes disso.
    * ----------------------------------------------------------------- */
   html[data-ddm-theme='dark'] #kix-horizontal-ruler,
-  html[data-ddm-theme='dark'] #kix-vertical-ruler,
+  html[data-ddm-theme='dark'] #kix-vertical-ruler {
+    background-color: var(--ddm-surface-raised) !important;
+    color: var(--ddm-text-muted);
+  }
+
   html[data-ddm-theme='dark'] .docs-ruler-background-inner {
     background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text-muted);
   }
 
   html[data-ddm-theme='dark'] #docs-editor-container,
   html[data-ddm-theme='dark'] #docs-editor {
     background-color: var(--ddm-bg);
+  }
+
+  /* Botão flutuante do seletor de capítulos/esboço.
+   *
+   * Diagnóstico real (2026-10-27): `button` com a classe
+   * `appsKixClientUiWizMiniChapterSwitcherSurfaceSwitcher`, 36 × 36 px,
+   * fundo rgb(233, 238, 246) sobre a área de trabalho. A declaração normal
+   * venceu a medição de cascata (sem `!important`), e o hover usa a mesma
+   * âncora para não ser vencido pela regra base. */
+  html[data-ddm-theme='dark'] #kix-appview .appsKixClientUiWizMiniChapterSwitcherSurfaceSwitcher {
+    background-color: var(--ddm-surface-raised);
+    color: var(--ddm-text);
+    border-color: var(--ddm-border);
+  }
+
+  html[data-ddm-theme='dark'] #kix-appview .appsKixClientUiWizMiniChapterSwitcherSurfaceSwitcher:hover {
+    background-color: var(--ddm-hover);
   }
 
   /* -------------------------------------------------------------------
@@ -763,7 +852,8 @@
   /* -------------------------------------------------------------------
    * EXCEÇÕES DE ESPECIFICIDADE — ALLOWLIST
    *
-   * Esta é a única fonte de `!important` da folha. Cada entrada exige uma
+   * Toda ocorrência de `!important` da folha está declarada aqui: duas
+   * declarações (barra de ferramentas e régua). Cada entrada exige uma
    * medição de cascata real e é verificada pelo contrato estático
    * (`tests/unit/theme-css.test.ts`), que reprova qualquer ocorrência fora
    * desta lista e qualquer entrada sem uso.
@@ -775,6 +865,23 @@
    *      - declaração normal do tema: não vencia a cascata;
    *      - declaração de autor com `!important`: vencia;
    *      - remoção do atributo `style` inline: não alterava o fundo.
+   *
+   * 2. `#kix-horizontal-ruler` / `background-color`
+   *    Medição de cascata (2026-10-27, editor real do Google Docs):
+   *      - fundo computado da régua: rgb(248, 250, 253);
+   *      - `background-image`: nenhuma (a superfície é só cor);
+   *      - declaração normal do tema: não vencia a cascata;
+   *      - seletor reforçado com todas as classes do elemento
+   *        (`#kix-horizontal-ruler.docs-ui-unprintable.docs-horizontal-ruler.docs-ruler`):
+   *        também não vencia;
+   *      - declaração de autor com `!important`: vencia.
+   *    A `color` da régua (números) foi medida à parte e venceu sem
+   *    `!important`.
+   *
+   * 3. `#kix-vertical-ruler` / `background-color`
+   *    Mesma medição do item 2, repetida no elemento vertical: fundo
+   *    computado rgb(248, 250, 253); normal e seletor reforçado não venciam;
+   *    `!important` vencia.
    *
    * A regra correspondente continua escopada por
    * `html[data-ddm-theme='dark']` e dentro de `@media screen`: com o tema
